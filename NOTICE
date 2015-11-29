@@ -1,0 +1,5 @@
+torch-svm
+Copyright (c) 2012-2014, Koray Kavukcuoglu.
+
+The svmlight format reader/writer is based on the package https://github.com/koraykv/torch-svm.
+Licensed under the 3-clause BSD License.
