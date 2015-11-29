@@ -3,7 +3,7 @@ version = "0.1-0"
 
 source = {
    url = "git://github.com/crscardellino/torch-ml-tools.git",
-   tag = "v0.1"
+   tag = "0.1-0"
 }
 
 description = {
