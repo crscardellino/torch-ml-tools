@@ -21,6 +21,8 @@ function SparseDataset:__init(fname_or_indices, zero_based_or_values, target, sh
         self.values = zero_based_or_values  -- Table of Tensors
         self.target = target:type('torch.IntTensor')  -- One dimensional Tensor
         self.shape = shape  -- Tuple with 2 values: rows and cols
+
+        if self.target:min() == 0 then self.target = self.target + 1 end  -- Make sure the target classes start at 1
     end
 end
 
@@ -32,6 +34,22 @@ function SparseDataset:getDenseDataset()
             self.indices[i]:type('torch.LongTensor'),
             self.values[i]:type('torch.FloatTensor')
         )
+    end
+
+    return dataset
+end
+
+function SparseDataset:getTorchDataset()
+    local dataset = {}
+    local datasetSize = self.shape.rows
+    local denseDataset = self:getDenseDataset()
+
+    function dataset:size()
+        return datasetSize
+    end
+
+    for i = 1, dataset:size() do
+        dataset[i] = {denseDataset[i], self.target[i]}
     end
 
     return dataset
@@ -86,8 +104,12 @@ function SparseDataset:readFromFile(fname, zero_based)
         labels[tgt] = labels[tgt] + 1
     end
 
+    local shift = 0
+
+    if labels[shift] then shift = 1 end
+
     for l, c in pairs(labels) do
-        io.write(string.format("# of samples of label %d = %d\n", l, c))
+        io.write(string.format("# of samples of label %d = %d\n", l + shift, c))
     end
     io.write(string.format("# of total samples = %d\n", shape.rows))
     io.write(string.format("# of features = %d\n", shape.cols))
@@ -96,6 +118,8 @@ function SparseDataset:readFromFile(fname, zero_based)
     self.values = values
     self.target = torch.IntTensor(target)
     self.shape = shape
+
+    if self.target:min() == 0 then self.target = self.target + 1 end  -- Make sure the target classes start at 1
 end
 
 function SparseDataset:size()
