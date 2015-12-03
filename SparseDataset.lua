@@ -6,14 +6,15 @@
 
 local SparseDataset = torch.class('mltools.SparseDataset')
 
-function SparseDataset:__init(fname_or_indices, zero_based_or_values, target, shape)
+function SparseDataset:__init(fname_or_indices, zero_based_or_values, target, shape, num_classes)
     if type(fname_or_indices) == 'string' then
         if zero_based_or_values == nil then zero_based_or_values = false end
         if type(zero_based_or_values) ~= 'boolean' then error('Wrong second argument. Should be of type boolean.') end
         -- If the indices starts with 0 or 1 (default)
         self:readFromFile(fname_or_indices, zero_based_or_values)
     elseif type(fname_or_indices) == 'table' then
-        if type(zero_based_or_values) ~= 'table' or not target or type(shape) ~= 'table' then
+        if type(zero_based_or_values) ~= 'table' or not target or type(shape) ~= 'table'
+                or type(num_classes) ~= 'number' then
             error('Wrong argument type')
         end
 
@@ -21,6 +22,7 @@ function SparseDataset:__init(fname_or_indices, zero_based_or_values, target, sh
         self.values = zero_based_or_values  -- Table of Tensors
         self.target = target:type('torch.IntTensor')  -- One dimensional Tensor
         self.shape = shape  -- Tuple with 2 values: rows and cols
+        self.num_classes = num_classes
 
         if self.target:min() == 0 then self.target = self.target + 1 end  -- Make sure the target classes start at 1
     end
@@ -108,9 +110,13 @@ function SparseDataset:readFromFile(fname, zero_based)
 
     if labels[shift] then shift = 1 end
 
+    local num_classes = 0
+
     for l, c in pairs(labels) do
         io.write(string.format("# of samples of label %d = %d\n", l + shift, c))
+        num_classes = num_classes + 1
     end
+
     io.write(string.format("# of total samples = %d\n", shape.rows))
     io.write(string.format("# of features = %d\n", shape.cols))
 
@@ -118,6 +124,7 @@ function SparseDataset:readFromFile(fname, zero_based)
     self.values = values
     self.target = torch.IntTensor(target)
     self.shape = shape
+    self.num_classes = num_classes
 
     if self.target:min() == 0 then self.target = self.target + 1 end  -- Make sure the target classes start at 1
 end
