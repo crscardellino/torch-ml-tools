@@ -98,6 +98,10 @@ function SparseDataset:readFromFile(fname, zero_based)
     self.shape = shape
 end
 
+function SparseDataset:size()
+    return torch.IntTensor({self.shape.rows, self.shape.cols})
+end
+
 function SparseDataset:writeToFile(fname)
     print('Writing ' .. fname)
 
