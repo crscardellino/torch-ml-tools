@@ -1,9 +1,3 @@
---[[
-	Copyright (c) 2016, Cristian Cardellino.
-	This work is licensed under the "New BSD License".
-	See LICENSE for more information.
-]]--
-
 local SparseDataset = torch.class('mltools.SparseDataset')
 
 function SparseDataset:__init(fname_or_indices, zero_based_or_values, target, shape, num_classes)
