@@ -1,20 +1,53 @@
 local SparseDataset = torch.class('mltools.SparseDataset')
 
-function SparseDataset:__init(fname_or_indices, zero_based_or_values, target, shape, num_classes)
-    if type(fname_or_indices) == 'string' then
-        if zero_based_or_values == nil then zero_based_or_values = false end
-        if type(zero_based_or_values) ~= 'boolean' then error('Wrong second argument. Should be of type boolean.') end
-        -- If the indices starts with 0 or 1 (default)
-        self:readFromFile(fname_or_indices, zero_based_or_values)
-    elseif type(fname_or_indices) == 'table' then
-        if type(zero_based_or_values) ~= 'table' or not target or type(shape) ~= 'table'
+local function torchTensor(tensor_type)
+    local tensor_types = {
+        ['torch.ByteTensor'] = torch.ByteTensor,
+        ['torch.CharTensor'] = torch.CharTensor,
+        ['torch.ShortTensor'] = torch.ShortTensor,
+        ['torch.IntTensor'] = torch.IntTensor,
+        ['torch.LongTensor'] = torch.LongTensor,
+        ['torch.FloatTensor'] = torch.FloatTensor,
+        ['torch.DoubleTensor'] = torch.DoubleTensor,
+        ['torch.CudaTensor'] = torch.CudaTensor
+    }
+
+    return tensor_types[tensor_type]
+end
+
+function SparseDataset:__init(indices, values, target, shape, num_classes, data_type, target_type)
+    if type(indices) == 'string' then
+        local fname = indices
+        local zero_based = shape
+
+        self.data_type = values or 'torch.DoubleTensor'
+        self.target_type = target or 'torch.IntTensor'
+
+        if not torchTensor(self.data_type) or not torchTensor(self.target_type) then
+            error('The data_type and target_type should be a valid torch tensor type')
+        end
+
+        if not zero_based then zero_based = false end
+        if type(zero_based) ~= 'boolean' then
+            error('Wrong zero_based argument. Should be of type boolean.')
+        end -- Checks if the indices starts with 0 or 1 (default)
+
+        self:readFromFile(fname, zero_based)
+    elseif type(indices) == 'table' then
+        if type(values) ~= 'table' or not target or type(shape) ~= 'table'
                 or type(num_classes) ~= 'number' then
             error('Wrong argument type')
         end
 
-        self.indices = fname_or_indices  -- Table of Tensors
-        self.values = zero_based_or_values  -- Table of Tensors
-        self.target = target:type('torch.IntTensor')  -- One dimensional Tensor
+        self.data_type = data_type or 'torch.DoubleTensor'
+        self.target_type = target_type or 'torch.IntTensor'
+        if not torchTensor(self.data_type) or not torchTensor(self.target_type) then
+            error('The indices_type, data_type and target_type, should be a valid torch tensor type')
+        end
+
+        self.indices = indices  -- Table of Tensors
+        self.values = values  -- Table of Tensors
+        self.target = target:type(self.target_type)  -- One dimensional Tensor
         self.shape = shape  -- Tuple with 2 values: rows and cols
         self.num_classes = num_classes
 
@@ -23,12 +56,12 @@ function SparseDataset:__init(fname_or_indices, zero_based_or_values, target, sh
 end
 
 function SparseDataset:getDenseDataset()
-    local dataset = torch.FloatTensor(self.shape.rows, self.shape.cols):zero()
+    local dataset = torchTensor(self.data_type)(self.shape.rows, self.shape.cols):zero()
 
     for i = 1, #self.indices do
         dataset[{i, {}}]:indexAdd(1,
             self.indices[i]:type('torch.LongTensor'),
-            self.values[i]:type('torch.FloatTensor')
+            self.values[i]:type(self.data_type)
         )
     end
 
@@ -78,7 +111,7 @@ function SparseDataset:readFromFile(fname, zero_based)
             inds[#inds+1] = ind
             vals[#vals+1] = val
         end
-        return torch.LongTensor(inds), torch.FloatTensor(vals), label
+        return torch.LongTensor(inds), torchTensor(self.data_type)(vals), label
     end
 
     local indices = {}
@@ -116,7 +149,7 @@ function SparseDataset:readFromFile(fname, zero_based)
 
     self.indices = indices
     self.values = values
-    self.target = torch.IntTensor(target)
+    self.target = torchTensor(self.target_type)(target)
     self.shape = shape
     self.num_classes = num_classes
 
