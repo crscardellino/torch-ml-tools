@@ -111,7 +111,7 @@ function SparseDataset:readFromFile(fname, zero_based)
             inds[#inds+1] = ind
             vals[#vals+1] = val
         end
-        return torch.LongTensor(inds), torchTensor(self.data_type)(vals), label
+        return torch.LongTensor(inds), torch.FloatTensor(vals), label
     end
 
     local indices = {}
